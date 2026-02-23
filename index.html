@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MHTMLens v0.2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Righteous&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#11111b;--base:#181825;--mantle:#1e1e2e;--crust:#13131d;--s0:#313244;--s1:#45475a;--s2:#585b70;--text:#cdd6f4;--sub1:#bac2de;--sub0:#a6adc8;--ov0:#6c7086;--grn:#a6e3a1;--grn-d:rgba(166,227,161,.12);--red:#f38ba8;--red-d:rgba(243,139,168,.12);--pch:#fab387;--pch-d:rgba(250,179,135,.12);--ylw:#f9e2af;--ylw-d:rgba(249,226,175,.12);--blu:#89b4fa;--blu-d:rgba(137,180,250,.12);--mav:#cba6f7;--mav-d:rgba(203,166,247,.12);--tea:#94e2d5;--tea-d:rgba(148,226,213,.12);--sky:#89dceb;--mono:'Fira Code',monospace;--sans:'Manrope',sans-serif;--disp:'Righteous',sans-serif}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--s0);border-radius:3px}
+::selection{background:var(--tea);color:var(--bg)}button{font-family:var(--sans);cursor:pointer}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes scanline{0%{top:-2px}100%{top:100%}}
+#app{display:flex;flex-direction:column;height:100vh}
+.hdr{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--s0);flex-shrink:0;background:var(--base)}
+.hdr h1{font-family:var(--disp);font-size:22px;color:var(--tea);letter-spacing:1px}
+.hdr .ver{font-family:var(--mono);font-size:9px;color:var(--ov0)}
+.hdr .fi{font-family:var(--mono);font-size:10px;color:var(--sub0);display:flex;align-items:center;gap:6px;margin-left:10px}
+.tag{background:var(--s0);padding:1px 7px;border-radius:3px;border:1px solid var(--s1);font-family:var(--mono);font-size:10px}
+.fmt-badge{background:var(--tea-d);border:1px solid rgba(148,226,213,.3);border-radius:3px;padding:1px 7px;font-family:var(--mono);font-size:10px;color:var(--tea)}
+.hdr .acts{display:flex;gap:3px;margin-left:auto}
+.abtn{padding:3px 9px;background:var(--s0);border:1px solid var(--s1);border-radius:4px;color:var(--sub0);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .1s;display:flex;align-items:center;gap:4px}
+.abtn:hover{border-color:var(--tea);color:var(--tea)}
+.gsearch{margin-left:8px;position:relative;display:flex;align-items:center}
+.gsearch input{width:200px;padding:4px 8px 4px 26px;background:var(--s0);border:1px solid var(--s1);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:10px;outline:none}
+.gsearch input:focus{border-color:var(--tea);width:280px;transition:width .2s}
+.gsearch svg{position:absolute;left:7px;color:var(--ov0);pointer-events:none}
+
+.dz{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;border:2px dashed var(--s0);border-radius:16px;margin:40px;transition:all .2s;position:relative;overflow:hidden;cursor:pointer}
+.dz::before{content:'';position:absolute;top:-2px;left:0;right:0;height:2px;background:var(--tea);opacity:0;animation:scanline 3s linear infinite}
+.dz:hover,.dz.over{border-color:var(--tea);background:var(--tea-d)}.dz:hover::before,.dz.over::before{opacity:.6}
+.dz h2{font-family:var(--disp);font-size:28px;letter-spacing:2px;color:var(--sub0);margin-bottom:6px}
+.dz p{font-size:12px;color:var(--ov0)}.dz .hint{font-family:var(--mono);font-size:10px;color:var(--ov0);margin-top:14px;background:var(--s0);padding:3px 10px;border-radius:4px}
+.dz input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dz .compare-hint{margin-top:8px;font-size:11px;color:var(--mav)}
+
+.mn{display:flex;flex-direction:column;flex:1;overflow:hidden}
+.tabs{display:flex;border-bottom:1px solid var(--s0);flex-shrink:0;background:var(--base);padding:0 12px;overflow-x:auto}
+.tab{padding:6px 14px;font-family:var(--mono);font-size:10px;color:var(--ov0);cursor:pointer;border-bottom:2px solid transparent;transition:all .1s;white-space:nowrap}
+.tab:hover{color:var(--sub1)}.tab.active{color:var(--tea);border-bottom-color:var(--tea)}
+.tab .badge{font-size:8px;background:var(--s0);padding:0 4px;border-radius:2px;margin-left:3px}
+.tp{display:none;flex:1;overflow:hidden}.tp.active{display:flex}
+
+/* Parts */
+.pts-panel{display:flex;flex:1;overflow:hidden}
+.pts-list{width:260px;overflow-y:auto;border-right:1px solid var(--s0);flex-shrink:0;background:var(--base)}
+.pt-item{padding:6px 10px;cursor:pointer;border-bottom:1px solid var(--s0);border-left:3px solid transparent;transition:all .06s}
+.pt-item:hover{background:var(--mantle)}.pt-item.active{background:var(--mantle);border-left-color:var(--tea)}
+.pt-item .pn{font-family:var(--mono);font-size:10px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt-item .pm{font-size:9px;color:var(--ov0);margin-top:2px;display:flex;gap:6px}
+.pty{font-size:8px;padding:1px 4px;border-radius:2px}.pty.html{background:var(--pch-d);color:var(--pch)}.pty.css{background:var(--blu-d);color:var(--blu)}.pty.js{background:var(--ylw-d);color:var(--ylw)}.pty.img{background:var(--grn-d);color:var(--grn)}.pty.other{background:var(--s0);color:var(--ov0)}
+.pts-ct{flex:1;overflow:auto}
+.pts-ct pre{font-family:var(--mono);font-size:11px;line-height:1.6;padding:10px 14px;color:var(--sub1);white-space:pre-wrap;word-break:break-all}
+.pts-ct .img-prev{display:flex;align-items:center;justify-content:center;height:100%;padding:20px}
+.pts-ct .img-prev img{max-width:100%;max-height:100%;border-radius:8px;border:1px solid var(--s0)}
+
+/* Preview */
+.prev-panel{display:flex;flex:1;overflow:hidden;position:relative}
+.prev-frame-wrap{flex:1;position:relative;overflow:hidden;background:#fff}
+.prev-frame-wrap iframe{width:100%;height:100%;border:none}
+.prev-overlay{position:absolute;inset:0;cursor:crosshair;z-index:5}
+.prev-highlight{position:absolute;border:2px solid var(--tea);background:rgba(148,226,213,.1);pointer-events:none;z-index:6;transition:all .05s;display:none}
+.prev-label{position:absolute;background:var(--crust);border:1px solid var(--tea);border-radius:3px;padding:2px 6px;font-family:var(--mono);font-size:9px;color:var(--tea);pointer-events:none;z-index:7;white-space:nowrap;display:none}
+.prev-detail{width:340px;overflow-y:auto;border-left:1px solid var(--s0);flex-shrink:0;background:var(--base);padding:10px 12px}
+.prev-toolbar{position:absolute;top:8px;left:8px;z-index:8;display:flex;gap:4px}
+.prev-toolbar .abtn{background:var(--crust);border:1px solid var(--s0)}
+.picker-active .prev-overlay{cursor:crosshair}
+
+/* DOM */
+.dom-panel{display:flex;flex:1;overflow:hidden}
+.dom-tree{width:440px;overflow:auto;border-right:1px solid var(--s0);flex-shrink:0;font-family:var(--mono);font-size:11px;padding:6px 0;background:var(--base)}
+.tn{cursor:pointer;user-select:none}
+.tr{padding:1px 6px;display:flex;align-items:center;gap:3px;transition:background .05s;white-space:nowrap}
+.tr:hover{background:var(--mantle)}.tr.sel{background:var(--tea-d)}
+.tt{width:12px;color:var(--ov0);flex-shrink:0;text-align:center;font-size:9px}
+.t-tag{color:var(--red)}.t-id{color:var(--pch)}.t-cls{color:var(--grn)}.t-attr{color:var(--ylw)}.t-txt{color:var(--ov0);font-style:italic;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.tc{padding-left:14px}.tc.hide{display:none}
+.dom-det{flex:1;overflow-y:auto;padding:10px 14px}
+
+/* Shared detail styles */
+.ds{margin-bottom:12px}
+.dt{font-family:var(--mono);font-size:9px;color:var(--ov0);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.dt .dot{width:5px;height:5px;border-radius:50%}
+.db{background:var(--base);border:1px solid var(--s0);border-radius:5px;padding:6px 8px;font-family:var(--mono);font-size:10px;line-height:1.5;color:var(--sub1);overflow-x:auto;position:relative}
+.cpb{position:absolute;top:4px;right:4px;padding:1px 6px;background:var(--s0);border:1px solid var(--s1);border-radius:2px;color:var(--ov0);font-family:var(--mono);font-size:8px;cursor:pointer}
+.cpb:hover{border-color:var(--tea);color:var(--tea)}
+.score-bar{height:6px;border-radius:3px;background:var(--s0);overflow:hidden;margin:4px 0}
+.score-fill{height:100%;border-radius:3px;transition:width .3s}
+.score-high{background:var(--grn)}.score-med{background:var(--ylw)}.score-low{background:var(--red)}
+
+/* CSS tab */
+.css-panel{display:flex;flex:1;overflow:hidden}
+.css-list{width:300px;overflow-y:auto;border-right:1px solid var(--s0);flex-shrink:0;background:var(--base);padding:6px 0}
+.css-sh{font-family:var(--mono);font-size:9px;color:var(--ov0);text-transform:uppercase;letter-spacing:.8px;padding:6px 10px 3px}
+.css-ri{padding:3px 10px;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--sub0);border-left:2px solid transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:all .05s}
+.css-ri:hover{background:var(--mantle);color:var(--text)}.css-ri.active{background:var(--mantle);border-left-color:var(--blu);color:var(--blu)}
+.css-det{flex:1;overflow-y:auto;padding:10px 14px}
+.css-pr{display:flex;gap:6px;padding:2px 0;font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--s0)}
+.css-pr .p{color:var(--blu);min-width:160px}.css-pr .v{color:var(--pch)}
+.swatch{width:12px;height:12px;border-radius:2px;border:1px solid var(--s1);flex-shrink:0;display:inline-block;vertical-align:middle;margin-right:3px}
+
+/* Theme */
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
+.theme-card{background:var(--base);border:1px solid var(--s0);border-radius:5px;padding:6px 8px;font-family:var(--mono);font-size:9px}
+.theme-card .swatch-lg{width:100%;height:28px;border-radius:3px;margin-bottom:4px;border:1px solid var(--s0)}
+.theme-card .val{color:var(--sub0);word-break:break-all}
+
+/* Selectors */
+.sel-panel{display:flex;flex-direction:column;flex:1;overflow:hidden;padding:10px 14px}
+.sel-ctrl{display:flex;gap:6px;margin-bottom:10px;flex-shrink:0;flex-wrap:wrap;align-items:center}
+.sf{padding:3px 8px;background:var(--s0);border:1px solid var(--s1);border-radius:4px;color:var(--sub0);font-family:var(--mono);font-size:9px;cursor:pointer;transition:all .1s}
+.sf:hover{border-color:var(--s2)}.sf.on{border-color:var(--tea);color:var(--tea);background:var(--tea-d)}
+.sel-search{flex:1;max-width:260px;padding:4px 8px;background:var(--s0);border:1px solid var(--s1);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:10px;outline:none}
+.sel-search:focus{border-color:var(--tea)}
+.sel-list{flex:1;overflow-y:auto}
+.si{background:var(--base);border:1px solid var(--s0);border-radius:5px;padding:6px 8px;margin-bottom:5px;transition:all .08s}
+.si:hover{border-color:var(--s1)}
+.si .ss{font-family:var(--mono);font-size:10px;color:var(--tea);margin-bottom:3px;display:flex;align-items:center;gap:5px}
+.si .sm{display:flex;gap:5px;font-size:9px;color:var(--ov0);flex-wrap:wrap;align-items:center}
+.si .xpath{font-family:var(--mono);font-size:9px;color:var(--mav);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tg-s{color:var(--grn);background:var(--grn-d);padding:0 4px;border-radius:2px;font-size:8px}
+.tg-o{color:var(--red);background:var(--red-d);padding:0 4px;border-radius:2px;font-size:8px}
+.tg-sem{color:var(--blu);background:var(--blu-d);padding:0 4px;border-radius:2px;font-size:8px}
+.tg-da{color:var(--mav);background:var(--mav-d);padding:0 4px;border-radius:2px;font-size:8px}
+.cp-mini{padding:0 5px;background:var(--s0);border:1px solid var(--s1);border-radius:2px;color:var(--ov0);font-size:8px;cursor:pointer;font-family:var(--mono)}
+.cp-mini:hover{border-color:var(--tea);color:var(--tea)}
+.score-inline{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;font-weight:600}
+.score-inline.hi{color:var(--grn)}.score-inline.md{color:var(--ylw)}.score-inline.lo{color:var(--red)}
+
+/* Code Gen */
+.code-panel{display:flex;flex-direction:column;flex:1;overflow:hidden;padding:10px 14px}
+.code-cards{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.cc{background:var(--base);border:1px solid var(--s0);border-radius:6px;overflow:hidden}
+.cc .ch{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--s0);background:var(--crust)}
+.cc .ct{font-family:var(--mono);font-size:10px;color:var(--text);font-weight:600}
+.cc .cl{font-family:var(--mono);font-size:8px;color:var(--ov0)}
+.cc pre{font-family:var(--mono);font-size:10px;line-height:1.55;padding:8px 10px;color:var(--sub1);overflow-x:auto;white-space:pre-wrap}
+
+/* Compare */
+.cmp-panel{display:flex;flex:1;overflow:hidden}
+.cmp-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;border:2px dashed var(--s0);border-radius:12px;margin:20px;cursor:pointer;transition:all .2s;position:relative}
+.cmp-drop:hover{border-color:var(--mav);background:var(--mav-d)}
+.cmp-drop h3{font-family:var(--disp);font-size:20px;color:var(--sub0);margin-bottom:4px}
+.cmp-drop p{font-size:11px;color:var(--ov0)}
+.cmp-drop input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.cmp-results{flex:1;overflow-y:auto;padding:12px 16px}
+.cmp-section{margin-bottom:14px}
+.cmp-added{color:var(--grn);background:var(--grn-d);padding:2px 6px;border-radius:3px;font-family:var(--mono);font-size:10px;margin:2px 0;display:block}
+.cmp-removed{color:var(--red);background:var(--red-d);padding:2px 6px;border-radius:3px;font-family:var(--mono);font-size:10px;margin:2px 0;display:block}
+.cmp-same{color:var(--ov0);font-family:var(--mono);font-size:10px;margin:2px 0;padding:2px 6px;display:block}
+
+.toast{position:fixed;bottom:16px;right:16px;background:var(--mantle);border:1px solid var(--s0);border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:10px;color:var(--text);z-index:200;animation:slideUp .2s ease;display:none}
+.toast.ok{border-color:var(--grn);color:var(--grn)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hdr">
+    <h1>MHTMLens</h1><span class="ver">v0.2.0</span>
+    <div class="fi" id="fi" style="display:none"></div>
+    <div class="gsearch" id="gsearch" style="display:none">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="globalSearch" placeholder="Search all tabs..." oninput="globalSearchHandler()">
+    </div>
+    <div class="acts" id="acts" style="display:none">
+      <button class="abtn" onclick="exportCleanHTML()">Clean HTML</button>
+      <button class="abtn" onclick="exportAllCSS()">All CSS</button>
+      <button class="abtn" onclick="exportUserscript()">Export .user.js</button>
+      <button class="abtn" onclick="exportSelectors()">Selectors JSON</button>
+      <button class="abtn" onclick="resetApp()">New File</button>
+    </div>
+    <span id="subtitle" style="font-size:11px;color:var(--ov0);margin-left:auto">MHTML Analyzer for Userscript Dev</span>
+  </div>
+  <div id="dzC"><div class="dz" id="dz"><h2>DROP MHTML FILE</h2><p>or click to browse</p><div class="hint">.mhtml / .mht / .html</div><div class="compare-hint">Drop 2 files to compare</div><input type="file" id="fIn" accept=".mhtml,.mht,.html,.htm" multiple></div></div>
+  <div class="mn" id="mnV" style="display:none">
+    <div class="tabs" id="tabBar">
+      <div class="tab active" data-t="parts">Parts <span class="badge" id="partsN">0</span></div>
+      <div class="tab" data-t="preview">Preview + Picker</div>
+      <div class="tab" data-t="dom">DOM Tree</div>
+      <div class="tab" data-t="css">CSS</div>
+      <div class="tab" data-t="theme">Theme</div>
+      <div class="tab" data-t="sel">Selectors <span class="badge" id="selN">0</span></div>
+      <div class="tab" data-t="code">Code Gen</div>
+      <div class="tab" data-t="cmp">Compare</div>
+    </div>
+    <div id="tps" style="flex:1;overflow:hidden;display:flex">
+      <div class="tp active" data-p="parts"><div class="pts-panel"><div class="pts-list" id="ptsList"></div><div class="pts-ct" id="ptsCt"><pre>Select a part</pre></div></div></div>
+      <div class="tp" data-p="preview"><div class="prev-panel" id="prevPanel"><div class="prev-frame-wrap" id="prevWrap"><iframe id="prevFrame" sandbox="allow-same-origin"></iframe><div class="prev-overlay" id="prevOv"></div><div class="prev-highlight" id="prevHl"></div><div class="prev-label" id="prevLbl"></div><div class="prev-toolbar"><button class="abtn" id="pickerBtn" onclick="togglePicker()">Element Picker</button><button class="abtn" onclick="toggleTextSearch()">Text Search</button></div></div><div class="prev-detail" id="prevDet"><div style="color:var(--ov0);font-size:11px;padding:16px">Enable Element Picker then hover over the preview to inspect elements</div></div></div></div>
+      <div class="tp" data-p="dom"><div class="dom-panel"><div class="dom-tree" id="domTree"></div><div class="dom-det" id="domDet"><div style="color:var(--ov0);font-size:11px;padding:16px">Click a tree node to inspect</div></div></div></div>
+      <div class="tp" data-p="css"><div class="css-panel"><div class="css-list" id="cssList"></div><div class="css-det" id="cssDet"></div></div></div>
+      <div class="tp" data-p="theme"><div style="flex:1;overflow-y:auto;padding:12px 16px" id="themePanel"></div></div>
+      <div class="tp" data-p="sel"><div class="sel-panel"><div class="sel-ctrl" id="selCtrl"></div><div class="sel-list" id="selList"></div></div></div>
+      <div class="tp" data-p="code"><div class="code-panel"><div class="code-cards" id="codeCds"></div></div></div>
+      <div class="tp" data-p="cmp"><div class="cmp-panel" id="cmpPanel"><div class="cmp-drop" id="cmpDrop"><h3>DROP SECOND MHTML</h3><p>Compare selectors, classes, and DOM structure</p><input type="file" id="cmpIn" accept=".mhtml,.mht,.html,.htm"></div><div class="cmp-results" id="cmpRes" style="display:none"></div></div></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+const D={parts:[],htmlPart:null,doc:null,cssRules:[],cssVars:[],selectors:[],fileName:'',domain:'',
+  compareDoc:null,compareSels:[]};
+let pickerOn=false,textSearchOn=false;
+
+// ═══════════════════════════════════════
+// MHTML PARSER (improved: nested, charset)
+// ═══════════════════════════════════════
+function parseMHTML(text){
+  const parts=[];
+  const bm=text.match(/boundary="?([^"\r\n;]+)"?/i);
+  if(!bm)return[{location:'index.html',contentType:'text/html',encoding:'none',body:text,decoded:text}];
+  const boundary='--'+bm[1];
+  const sections=text.split(boundary).slice(1);
+  for(const sec of sections){
+    if(sec.trim()==='--'||sec.trim()==='')continue;
+    const he=sec.indexOf('\r\n\r\n');const he2=sec.indexOf('\n\n');const hEnd=he!==-1?he:he2;
+    if(hEnd===-1)continue;
+    const hStr=sec.substring(0,hEnd);const bStart=he!==-1?hEnd+4:hEnd+2;
+    let body=sec.substring(bStart);
+    // Trim trailing boundary remnants
+    const lastNL=body.lastIndexOf('\r\n');
+    if(lastNL>0)body=body.substring(0,lastNL);
+
+    const gh=n=>{const r=new RegExp('^'+n+':\\s*(.+)$','im');const m=hStr.match(r);return m?m[1].trim():''};
+    let ct=gh('Content-Type');
+    const charset=(ct.match(/charset=["']?([^"';\s]+)/i)||[])[1]||'utf-8';
+    ct=ct.split(';')[0].trim().toLowerCase();
+    const enc=gh('Content-Transfer-Encoding').toLowerCase();
+    const loc=gh('Content-Location')||gh('Content-ID')||'part-'+parts.length;
+
+    let decoded=body;
+    if(enc==='quoted-printable')decoded=decodeQP(body);
+    else if(enc==='base64'){try{decoded=decodeB64(body,charset)}catch{decoded=body}}
+    parts.push({location:loc,contentType:ct,encoding:enc,charset,body,decoded});
+  }
+  return parts;
+}
+function decodeQP(s){return s.replace(/=\r?\n/g,'').replace(/=([0-9A-Fa-f]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)))}
+function decodeB64(s,charset){
+  const raw=atob(s.replace(/\s/g,''));
+  if(charset.toLowerCase()==='utf-8'||charset.toLowerCase()==='us-ascii'){
+    try{return new TextDecoder(charset).decode(Uint8Array.from(raw,c=>c.charCodeAt(0)))}catch{}
+  }
+  return raw;
+}
+
+// ═══════════════════════════════════════
+// CSS PARSER
+// ═══════════════════════════════════════
+function extractCSS(doc,parts){
+  const rules=[],vars=[];
+  doc.querySelectorAll('style').forEach((s,i)=>parseCSS(s.textContent,'<style#'+i+'>',rules,vars));
+  for(const p of parts){if(p.contentType==='text/css'||p.location.endsWith('.css'))parseCSS(p.decoded,p.location,rules,vars)}
+  return{rules,vars};
+}
+function parseCSS(text,source,rules,vars){
+  const vr=/(--[\w-]+)\s*:\s*([^;}\n]+)/g;let m;
+  while((m=vr.exec(text))!==null)vars.push({name:m[1],value:m[2].trim(),source});
+  // Extract media queries
+  const mqRe=/@media\s*([^{]+)\{((?:[^{}]|\{[^{}]*\})*)\}/g;let mq;
+  while((mq=mqRe.exec(text))!==null){
+    const media=mq[1].trim();const inner=mq[2];
+    const rRe=/([^{}@]+?)\{([^{}]*?)\}/g;let rr;
+    while((rr=rRe.exec(inner))!==null){
+      const sel=rr[1].trim();if(!sel)continue;
+      const props=parseProps(rr[2]);
+      if(props.length>0)rules.push({selector:sel,properties:props,source,media});
+    }
+  }
+  // Non-media rules
+  const rRe=/([^{}@]+?)\{([^{}]*?)\}/g;let r;
+  while((r=rRe.exec(text))!==null){
+    const sel=r[1].trim();if(!sel||sel.startsWith('@')||sel.startsWith('/*'))continue;
+    const props=parseProps(r[2]);
+    if(props.length>0)rules.push({selector:sel,properties:props,source,media:null});
+  }
+}
+function parseProps(str){
+  const props=[];const re=/([\w-]+)\s*:\s*([^;]+)/g;let m;
+  while((m=re.exec(str))!==null)props.push({prop:m[1].trim(),val:m[2].trim()});
+  return props;
+}
+
+// ═══════════════════════════════════════
+// SELECTOR ANALYSIS + SCORING
+// ═══════════════════════════════════════
+const OBF_RE=/^[a-zA-Z]{1,3}[A-Z][a-zA-Z0-9]{3,}$|^[a-z]{1,2}\d{2,}|^css-[a-z0-9]+$|^_[a-zA-Z0-9]{5,}$|^[A-Z][a-z]{2,5}[A-Z][a-z]+__[a-z]/;
+const HASH_RE=/[_-][a-zA-Z0-9]{5,}$|^[a-z]+[A-Z][a-zA-Z]{4,}[0-9]+$/;
+function isObf(name){
+  if(OBF_RE.test(name)||HASH_RE.test(name))return true;
+  const entropy=new Set(name).size/name.length;
+  return name.length>6&&entropy>.7&&/[A-Z]/.test(name)&&/[a-z]/.test(name)&&/\d/.test(name);
+}
+
+function stabilityScore(sel){
+  let score=50; // base
+  // Positive signals
+  if(sel.type==='data-attr')score+=30;
+  if(sel.type==='aria')score+=25;
+  if(sel.type==='semantic')score+=20;
+  if(sel.type==='id'&&!isObf(sel.rawName||''))score+=20;
+  if(sel.type==='class'&&!isObf(sel.rawName||''))score+=15;
+  if(sel.matchCount===1)score+=10; // unique
+  // Negative signals
+  if(sel.stability==='obfuscated')score-=40;
+  if(sel.matchCount>50)score-=15;
+  if(sel.depth>6)score-=10;
+  if(sel.selector.includes('nth'))score-=10;
+  return Math.max(0,Math.min(100,score));
+}
+
+function genXPath(el){
+  const parts=[];let cur=el;
+  while(cur&&cur.nodeType===1){
+    let seg=cur.tagName.toLowerCase();
+    if(cur.id){parts.unshift('//*[@id="'+cur.id+'"]');break}
+    if(cur.parentElement){
+      const sibs=[...cur.parentElement.children].filter(c=>c.tagName===cur.tagName);
+      if(sibs.length>1)seg+='['+(sibs.indexOf(cur)+1)+']';
+    }
+    parts.unshift(seg);cur=cur.parentElement;
+  }
+  return '/'+parts.join('/');
+}
+
+function genPath(el){
+  const parts=[];let cur=el;
+  while(cur&&cur.nodeType===1){
+    let sel=cur.tagName.toLowerCase();
+    if(cur.id){parts.unshift('#'+CSS.escape(cur.id));break}
+    const sc=[...cur.classList].find(c=>!isObf(c));
+    if(sc)sel+='.'+CSS.escape(sc);
+    else if(cur.getAttribute('role'))sel+='[role="'+cur.getAttribute('role')+'"]';
+    else if(cur.getAttribute('data-testid'))sel+='[data-testid="'+cur.getAttribute('data-testid')+'"]';
+    else if(cur.parentElement){
+      const sibs=[...cur.parentElement.children].filter(c=>c.tagName===cur.tagName);
+      if(sibs.length>1)sel+=':nth-of-type('+(sibs.indexOf(cur)+1)+')';
+    }
+    parts.unshift(sel);cur=cur.parentElement;
+  }
+  return parts.join(' > ');
+}
+
+function genMutationSnippet(sel){
+  return `// Watch for ${sel.selector} to appear
+const observer = new MutationObserver((mutations) => {
+  for (const m of mutations) {
+    for (const node of m.addedNodes) {
+      if (node.nodeType !== 1) continue;
+      const target = node.matches?.('${sel.selector}') ? node : node.querySelector?.('${sel.selector}');
+      if (target) {
+        // Element found — do something
+        console.log('Found:', target);
+        // observer.disconnect(); // uncomment to stop watching
+      }
+    }
+  }
+});
+observer.observe(document.body, { childList: true, subtree: true });`;
+}
+
+function analyzeSelectors(doc){
+  const sels=[];const seen=new Set();
+  function depth(el){let d=0;let c=el;while(c.parentElement){d++;c=c.parentElement}return d}
+  function proc(el){
+    if(el.nodeType!==1)return;
+    const tag=el.tagName.toLowerCase();
+    if(['script','style','link','meta','head','html','noscript','svg'].includes(tag))return;
+    const dp=depth(el);
+    // ID
+    if(el.id){const s='#'+CSS.escape(el.id);if(!seen.has(s)){seen.add(s);
+      sels.push({selector:s,type:'id',stability:isObf(el.id)?'obfuscated':'stable',rawName:el.id,matchCount:doc.querySelectorAll(s).length,element:tag,depth:dp,xpath:genXPath(el),path:genPath(el),desc:'ID'+(isObf(el.id)?' (generated)':'')})}}
+    // Classes
+    for(const cls of el.classList){const s='.'+CSS.escape(cls);if(!seen.has(s)){seen.add(s);
+      sels.push({selector:s,type:'class',stability:isObf(cls)?'obfuscated':'stable',rawName:cls,matchCount:doc.querySelectorAll(s).length,element:tag,depth:dp,xpath:genXPath(el),path:genPath(el),desc:isObf(cls)?'Obfuscated/generated class':'Class'})}}
+    // Data attrs
+    for(const a of el.attributes){
+      if(a.name.startsWith('data-')){
+        const sv='['+a.name+'="'+CSS.escape(a.value)+'"]';const sn='['+a.name+']';
+        if(!seen.has(sv)){seen.add(sv);sels.push({selector:sv,type:'data-attr',stability:'stable',rawName:a.name,matchCount:doc.querySelectorAll(sv).length,element:tag,depth:dp,xpath:genXPath(el),path:genPath(el),desc:'data-attr: '+a.name})}
+        if(!seen.has(sn)){seen.add(sn);sels.push({selector:sn,type:'data-attr',stability:'stable',rawName:a.name,matchCount:doc.querySelectorAll(sn).length,element:tag,depth:dp,xpath:genXPath(el),path:genPath(el),desc:'data-attr (any value): '+a.name})}
+      }
+    }
+    // ARIA
+    const role=el.getAttribute('role');
+    if(role){const s='[role="'+role+'"]';if(!seen.has(s)){seen.add(s);sels.push({selector:s,type:'aria',stability:'stable',rawName:role,matchCount:doc.querySelectorAll(s).length,element:tag,depth:dp,xpath:genXPath(el),path:genPath(el),desc:'ARIA role: '+role})}}
+    const al=el.getAttribute('aria-label');
+    if(al){const s='[aria-label="'+CSS.escape(al)+'"]';if(!seen.has(s)){seen.add(s);sels.push({selector:s,type:'aria',stability:'stable',rawName:al,matchCount:doc.querySelectorAll(s).length,element:tag,depth:dp,xpath:genXPath(el),path:genPath(el),desc:'ARIA label'})}}
+    // Semantic
+    if(['header','nav','main','footer','article','aside','section','form','dialog'].includes(tag)){if(!seen.has(tag)){seen.add(tag);sels.push({selector:tag,type:'semantic',stability:'stable',rawName:tag,matchCount:doc.querySelectorAll(tag).length,element:tag,depth:dp,xpath:genXPath(el),path:genPath(el),desc:'Semantic element'})}}
+    for(const ch of el.children)proc(ch);
+  }
+  if(doc.body)proc(doc.body);
+  // Add stability scores
+  sels.forEach(s=>s.score=stabilityScore(s));
+  // Sort: highest score first
+  sels.sort((a,b)=>b.score-a.score);
+  return sels;
+}
+
+// Best selector recommendation per element path
+function bestSelectorFor(el,doc){
+  if(!el||el.nodeType!==1)return null;
+  const candidates=[];
+  // data-testid
+  const testid=el.getAttribute('data-testid');
+  if(testid)candidates.push({sel:'[data-testid="'+testid+'"]',score:95});
+  // data-* attrs
+  for(const a of el.attributes)if(a.name.startsWith('data-')&&a.name!=='data-testid')candidates.push({sel:'['+a.name+'="'+CSS.escape(a.value)+'"]',score:85});
+  // ARIA
+  if(el.getAttribute('role'))candidates.push({sel:'[role="'+el.getAttribute('role')+'"]',score:80});
+  if(el.getAttribute('aria-label'))candidates.push({sel:'[aria-label="'+CSS.escape(el.getAttribute('aria-label'))+'"]',score:80});
+  // ID
+  if(el.id)candidates.push({sel:'#'+CSS.escape(el.id),score:isObf(el.id)?30:75});
+  // Stable class
+  for(const c of el.classList)if(!isObf(c))candidates.push({sel:'.'+CSS.escape(c),score:65});
+  // Semantic tag
+  const tag=el.tagName.toLowerCase();
+  if(['nav','main','header','footer','article','aside','section','form','dialog'].includes(tag)){
+    const count=doc.querySelectorAll(tag).length;
+    if(count===1)candidates.push({sel:tag,score:70});
+  }
+  // Full path (fallback)
+  candidates.push({sel:genPath(el),score:20});
+  candidates.sort((a,b)=>b.score-a.score);
+  return candidates[0]||null;
+}
+
+// ═══════════════════════════════════════
+// THEME EXTRACTION
+// ═══════════════════════════════════════
+function extractTheme(cssVars,cssRules){
+  const colors=[],fonts=new Set(),spacing=new Set(),radii=new Set(),breakpoints=new Set();
+  const colorRe=/^(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|oklch\([^)]+\))$/i;
+  // From CSS vars
+  for(const v of cssVars){if(colorRe.test(v.value))colors.push({name:v.name,value:v.value,source:'var'})}
+  // From rules
+  for(const r of cssRules){
+    for(const p of r.properties){
+      if(['color','background-color','border-color','fill','stroke','--'].some(k=>p.prop.startsWith(k)||p.prop===k)){
+        const cm=p.val.match(/#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)/gi);
+        if(cm)for(const c of cm)colors.push({name:p.prop,value:c,source:r.selector});
+      }
+      if(p.prop==='font-family')fonts.add(p.val.split(',')[0].trim().replace(/['"]/g,''));
+      if(['margin','padding','gap'].includes(p.prop)){const m=p.val.match(/\d+(?:px|rem|em)/g);if(m)m.forEach(v=>spacing.add(v))}
+      if(p.prop==='border-radius'){const m=p.val.match(/\d+(?:px|rem|em|%)/g);if(m)m.forEach(v=>radii.add(v))}
+    }
+    if(r.media){const bp=r.media.match(/\d+(?:px|em|rem)/g);if(bp)bp.forEach(v=>breakpoints.add(v))}
+  }
+  // Deduplicate colors
+  const uniqueColors=[];const seenC=new Set();
+  for(const c of colors){const key=c.value.toLowerCase();if(!seenC.has(key)){seenC.add(key);uniqueColors.push(c)}}
+  return{colors:uniqueColors.slice(0,50),fonts:[...fonts],spacing:[...spacing].sort(),radii:[...radii],breakpoints:[...breakpoints].sort()};
+}
+
+// ═══════════════════════════════════════
+// COMPARISON
+// ═══════════════════════════════════════
+function compareDocs(selsA,selsB){
+  const setA=new Set(selsA.map(s=>s.selector));
+  const setB=new Set(selsB.map(s=>s.selector));
+  const added=[...setB].filter(s=>!setA.has(s));
+  const removed=[...setA].filter(s=>!setB.has(s));
+  const kept=[...setA].filter(s=>setB.has(s));
+  return{added,removed,kept};
+}
+
+// ═══════════════════════════════════════
+// CODE GENERATION
+// ═══════════════════════════════════════
+function generateCode(){
+  const stable=D.selectors.filter(s=>s.score>=60).slice(0,15);
+  const cards=[];
+  // Full .user.js
+  cards.push({title:'Complete Userscript (.user.js)',lang:'JavaScript',code:buildFullUserscript()});
+  // Stable selector map
+  if(stable.length>0)cards.push({title:'Stable Selectors Map',lang:'JavaScript',code:`const SEL = {\n${stable.map(s=>`  '${s.desc.replace(/'/g,"\\'")}': '${s.selector.replace(/'/g,"\\'")}', // score:${s.score} ${s.matchCount}x`).join('\n')}\n};`});
+  // CSS var overrides
+  if(D.cssVars.length>0)cards.push({title:'CSS Variable Overrides',lang:'CSS',code:`GM_addStyle(\`\n:root {\n${D.cssVars.slice(0,20).map(v=>`  ${v.name}: /* new */ !important;  /* was: ${v.value} */`).join('\n')}\n}\n\`);`});
+  // MutationObserver for top selectors
+  if(stable.length>0){const s=stable[0];cards.push({title:'MutationObserver Template',lang:'JavaScript',code:genMutationSnippet(s)})}
+  // DOM Cleanup
+  cards.push({title:'DOM Cleanup',lang:'JavaScript',code:`function cleanDOM() {
+  document.querySelectorAll('div:empty').forEach(el => {
+    const s = getComputedStyle(el);
+    if (parseFloat(s.height) === 0 && !el.children.length) el.remove();
+  });
+  document.querySelectorAll('[aria-hidden="true"]').forEach(el => {
+    if (!el.closest('nav, main, header, footer, article')) el.remove();
+  });
+}
+const obs = new MutationObserver(cleanDOM);
+obs.observe(document.body, { childList: true, subtree: true });
+cleanDOM();`});
+  // XPath examples
+  const xpathSels=D.selectors.filter(s=>s.score>=70&&s.xpath).slice(0,5);
+  if(xpathSels.length>0)cards.push({title:'XPath Selectors',lang:'JavaScript',code:`// XPath selectors (for complex targeting)\n${xpathSels.map(s=>`// ${s.desc}\ndocument.evaluate('${s.xpath}', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;`).join('\n\n')}`});
+  // Settings panel
+  cards.push({title:'Settings Panel (GM_setValue)',lang:'JavaScript',code:`const DEFAULTS = { darkMode: true, hideAds: true, denseMode: false };
+function getSettings() { return { ...DEFAULTS, ...JSON.parse(GM_getValue('settings', '{}')) }; }
+function saveSettings(s) { GM_setValue('settings', JSON.stringify(s)); }
+
+function createPanel() {
+  const s = getSettings();
+  const p = document.createElement('div');
+  p.style.cssText = 'position:fixed;top:0;right:-320px;width:300px;height:100vh;background:#1a1a2e;border-left:1px solid #333;z-index:99999;transition:right .3s;padding:20px;color:#eee;overflow-y:auto;pointer-events:auto;';
+  let h = '<h3>Settings</h3>';
+  for (const [k, v] of Object.entries(s)) {
+    h += '<label style="display:flex;gap:8px;margin:8px 0;cursor:pointer"><input type="checkbox" ' + (v ? 'checked' : '') + ' data-k="' + k + '">' + k.replace(/([A-Z])/g, ' $1') + '</label>';
+  }
+  // trustedTypes safe
+  let tp; try { tp = window.trustedTypes?.createPolicy?.('us', { createHTML: s => s }); } catch {}
+  p.innerHTML = tp ? tp.createHTML(h) : h;
+  p.querySelectorAll('input').forEach(i => i.onchange = () => { const st = getSettings(); st[i.dataset.k] = i.checked; saveSettings(st); });
+  document.body.appendChild(p);
+  return p;
+}`});
+  return cards;
+}
+
+function buildFullUserscript(){
+  const domain=D.domain||'example.com';
+  const stable=D.selectors.filter(s=>s.score>=60).slice(0,8);
+  return `// ==UserScript==
+// @name         ${domain} Customizer
+// @namespace    https://github.com/SysAdminDoc
+// @version      0.1.0
+// @description  Userscript for ${domain}
+// @match        *://${domain}/*
+// @grant        GM_addStyle
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+  'use strict';
+
+  // Anti-FOUC
+  const af = document.createElement('style');
+  af.textContent = 'body { opacity: 0 !important; }';
+  document.documentElement.appendChild(af);
+
+  // Trusted types (YouTube/Google requirement)
+  let tp;
+  try { tp = window.trustedTypes?.createPolicy?.('userscript', { createHTML: s => s }); } catch {}
+
+  // Stable selectors
+  const SEL = {
+${stable.map(s=>`    '${s.desc.replace(/'/g,"\\'")}': '${s.selector.replace(/'/g,"\\'")}',`).join('\n')}
+  };
+
+  // Custom styles
+  GM_addStyle(\`
+    /* Add your styles here */
+${D.cssVars.length>0?D.cssVars.slice(0,5).map(v=>`    /* ${v.name}: override; */`).join('\n'):'    /* body { background: #1a1a2e !important; } */'}
+  \`);
+
+  function init() {
+    af.remove();
+    document.body.style.opacity = '';
+
+    // MutationObserver for SPA support
+    const observer = new MutationObserver(() => {
+      // Check for target elements on DOM changes
+      for (const [name, sel] of Object.entries(SEL)) {
+        const el = document.querySelector(sel);
+        if (el && !el.dataset.processed) {
+          el.dataset.processed = 'true';
+          // Process element
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();`;
+}
+
+// ═══════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function toast(m,c=''){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+c;t.style.display='block';setTimeout(()=>t.style.display='none',2000)}
+function cp(t){navigator.clipboard.writeText(t).then(()=>toast('Copied','ok'))}
+
+function renderParts(){
+  const el=document.getElementById('ptsList');let h='';
+  D.parts.forEach((p,i)=>{
+    const ct=p.contentType;const tc=ct.includes('html')?'html':ct.includes('css')?'css':ct.includes('javascript')?'js':ct.includes('image')?'img':'other';
+    const sn=p.location.split('/').pop().split('?')[0]||p.location;
+    h+=`<div class="pt-item${i===0?' active':''}" onclick="selPart(${i})" data-i="${i}"><div class="pn" title="${esc(p.location)}">${esc(sn)}</div><div class="pm"><span class="pty ${tc}">${tc}</span><span>${p.encoding||'none'}</span><span>${(p.decoded.length/1024).toFixed(1)}K</span></div></div>`;
+  });
+  el.innerHTML=h;document.getElementById('partsN').textContent=D.parts.length;
+  if(D.parts.length>0)selPart(0);
+}
+function selPart(i){
+  const p=D.parts[i];document.querySelectorAll('.pt-item').forEach(e=>e.classList.toggle('active',+e.dataset.i===i));
+  const ct=document.getElementById('ptsCt');
+  if(p.contentType.startsWith('image/')){try{ct.innerHTML=`<div class="img-prev"><img src="data:${p.contentType};base64,${btoa(p.decoded)}"></div>`}catch{ct.innerHTML='<pre>Binary image data</pre>'}}
+  else ct.innerHTML=`<pre>${esc(p.decoded)}</pre>`;
+}
+
+function renderPreview(){
+  if(!D.htmlPart)return;
+  const frame=document.getElementById('prevFrame');
+  // Reconstruct with inline resources
+  let html=D.htmlPart;
+  // Replace external resource references with data URIs where possible
+  for(const p of D.parts){
+    if(p.contentType.startsWith('image/')){
+      try{
+        const dataUri='data:'+p.contentType+';base64,'+btoa(p.decoded);
+        html=html.split(p.location).join(dataUri);
+      }catch{}
+    }else if(p.contentType==='text/css'){
+      html=html.split(p.location).join('data:text/css;base64,'+btoa(p.decoded));
+    }
+  }
+  frame.srcdoc=html;
+}
+
+function renderDOMTree(){
+  if(!D.doc||!D.doc.body)return;
+  document.getElementById('domTree').innerHTML=buildTree(D.doc.body,0);
+}
+function buildTree(el,d){
+  if(el.nodeType===3){const t=el.textContent.trim();return t?`<div class="tr" style="padding-left:${d*14+6}px"><span class="t-txt">"${esc(t.substring(0,50))}"</span></div>`:''}
+  if(el.nodeType!==1)return'';const tag=el.tagName.toLowerCase();
+  if(['script','style','link','meta','noscript'].includes(tag))return'';
+  const id=el.id?`<span class="t-id">#${esc(el.id)}</span>`:'';
+  const cls=el.classList.length>0?`<span class="t-cls">.${esc([...el.classList].slice(0,2).join('.'))}</span>${el.classList.length>2?`<span class="t-attr">+${el.classList.length-2}</span>`:''}`:'';
+  const dattrs=[];for(const a of el.attributes){if(a.name.startsWith('data-')||a.name==='role')dattrs.push(esc(a.name)+'="'+esc(a.value.substring(0,20))+'"')}
+  const attrStr=dattrs.length>0?' <span class="t-attr">'+dattrs.slice(0,2).join(' ')+'</span>':'';
+  const hasCh=el.children.length>0||[...el.childNodes].some(c=>c.nodeType===3&&c.textContent.trim());
+  const tog=hasCh?'<span class="tt">&#9660;</span>':'<span class="tt"></span>';
+  const path=genPath(el);
+  let h=`<div class="tn"><div class="tr" style="padding-left:${d*14+6}px" onclick="selNode(this)" data-path="${esc(path)}" data-tag="${tag}">${tog}<span class="t-tag">&lt;${tag}</span>${id}${cls}${attrStr}<span class="t-tag">&gt;</span></div>`;
+  if(hasCh){h+=`<div class="tc">`;for(const ch of el.childNodes)h+=buildTree(ch,d+1);h+=`</div>`}
+  return h+`</div>`;
+}
+
+function selNode(row){
+  document.querySelectorAll('.tr.sel').forEach(r=>r.classList.remove('sel'));row.classList.add('sel');
+  // Toggle children
+  const tc=row.parentElement.querySelector('.tc');
+  if(tc&&row.querySelector('.tt')){
+    const tog=row.querySelector('.tt');
+    if(tog.textContent==='\u25BC'){tc.classList.add('hide');tog.textContent='\u25B6'}
+    else if(tog.textContent==='\u25B6'){tc.classList.remove('hide');tog.textContent='\u25BC'}
+  }
+  const path=row.dataset.path;let el;try{el=D.doc.querySelector(path)}catch{}
+  renderElementDetail(el,document.getElementById('domDet'));
+}
+
+function renderElementDetail(el,container){
+  if(!el){container.innerHTML='<div style="color:var(--ov0)">Could not resolve</div>';return}
+  const tag=el.tagName.toLowerCase();const best=bestSelectorFor(el,D.doc);
+  const path=genPath(el);const xpath=genXPath(el);
+  let h='';
+  // Best selector
+  if(best)h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--tea)"></div>Best Selector <span class="score-inline ${best.score>=70?'hi':best.score>=40?'md':'lo'}">${best.score}/100</span></div><div class="db"><button class="cpb" onclick="cp('${esc(best.sel.replace(/'/g,"\\'"))}')">Copy</button><code style="color:var(--tea)">${esc(best.sel)}</code></div></div>`;
+  // Full path
+  h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--blu)"></div>CSS Path</div><div class="db"><button class="cpb" onclick="cp('${esc(path.replace(/'/g,"\\'"))}')">Copy</button><code>${esc(path)}</code></div></div>`;
+  // XPath
+  h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--mav)"></div>XPath</div><div class="db"><button class="cpb" onclick="cp('${esc(xpath.replace(/'/g,"\\'"))}')">Copy</button><code style="color:var(--mav)">${esc(xpath)}</code></div></div>`;
+  // Classes
+  if(el.classList.length>0){
+    h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--grn)"></div>Classes (${el.classList.length})</div><div class="db">`;
+    for(const c of el.classList){const o=isObf(c);h+=`<div style="display:flex;gap:5px;margin:1px 0"><span style="color:${o?'var(--red)':'var(--grn)'}">.${esc(c)}</span><span class="${o?'tg-o':'tg-s'}">${o?'OBF':'STABLE'}</span></div>`}
+    h+=`</div></div>`;
+  }
+  // Attributes
+  if(el.attributes.length>0){
+    h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--pch)"></div>Attributes</div><div class="db">`;
+    for(const a of el.attributes)if(a.name!=='class')h+=`<div><span style="color:var(--ylw)">${esc(a.name)}</span>=<span style="color:var(--grn)">"${esc(a.value.substring(0,150))}"</span></div>`;
+    h+=`</div></div>`;
+  }
+  // MutationObserver snippet
+  if(best)h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--sky)"></div>MutationObserver</div><div class="db"><button class="cpb" onclick="cp(this.nextElementSibling.textContent)">Copy</button><pre style="font-size:9px;margin:0;padding:0;color:var(--sub0)">${esc(genMutationSnippet({selector:best.sel}))}</pre></div></div>`;
+  // Text
+  const txt=el.textContent?.trim();
+  if(txt&&txt.length<300)h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--ov0)"></div>Text</div><div class="db"><code>${esc(txt.substring(0,200))}</code></div></div>`;
+  container.innerHTML=h;
+}
+
+function renderCSSPanel(){
+  const list=document.getElementById('cssList');let h='';
+  if(D.cssVars.length>0){h+=`<div class="css-sh">CSS Variables (${D.cssVars.length})</div><div class="css-ri" onclick="showVars()" style="color:var(--mav)">-- All Variables --</div>`}
+  const bySrc={};for(const r of D.cssRules){if(!bySrc[r.source])bySrc[r.source]=[];bySrc[r.source].push(r)}
+  for(const[src,rules]of Object.entries(bySrc)){
+    h+=`<div class="css-sh">${esc(src.split('/').pop().split('?')[0])} (${rules.length})</div>`;
+    for(let i=0;i<Math.min(rules.length,150);i++){const ri=D.cssRules.indexOf(rules[i]);h+=`<div class="css-ri" onclick="showRule(${ri})">${esc(rules[i].selector)}</div>`}
+    if(rules.length>150)h+=`<div class="css-ri" style="color:var(--ov0)">+${rules.length-150} more</div>`;
+  }
+  list.innerHTML=h;
+}
+function showVars(){
+  const d=document.getElementById('cssDet');let h='<div class="ds"><div class="dt"><div class="dot" style="background:var(--mav)"></div>CSS Custom Properties</div><div class="db"><button class="cpb" onclick="cpAllVars()">Copy All</button>';
+  for(const v of D.cssVars){const isC=/^#|^rgb|^hsl|^oklch/.test(v.value);h+=`<div style="display:flex;gap:5px;align-items:center;padding:1px 0">${isC?`<span class="swatch" style="background:${v.value}"></span>`:'  '}<span style="color:var(--mav)">${esc(v.name)}</span>: <span>${esc(v.value)}</span></div>`}
+  d.innerHTML=h+'</div></div>';
+}
+function showRule(i){
+  const r=D.cssRules[i];const d=document.getElementById('cssDet');
+  let h=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--blu)"></div>Selector</div><div class="db"><button class="cpb" onclick="cp('${esc(r.selector.replace(/'/g,"\\'"))}')">Copy</button><code style="color:var(--tea)">${esc(r.selector)}</code>${r.media?`<div style="color:var(--ylw);margin-top:3px">@media ${esc(r.media)}</div>`:''}</div></div>`;
+  h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--pch)"></div>Properties (${r.properties.length})</div><div class="db"><button class="cpb" onclick="cpRule(${i})">Copy CSS</button>`;
+  for(const p of r.properties){const isC=/^#|^rgb|^hsl|^oklch/.test(p.val);h+=`<div class="css-pr"><span class="p">${esc(p.prop)}</span><span class="v">${isC?`<span class="swatch" style="background:${p.val}"></span>`:''}${esc(p.val)}</span></div>`}
+  d.innerHTML=h+'</div></div>';
+}
+
+function renderTheme(){
+  const theme=extractTheme(D.cssVars,D.cssRules);const panel=document.getElementById('themePanel');
+  let h='';
+  // Colors
+  h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--pch)"></div>Color Palette (${theme.colors.length})</div><div class="theme-grid">`;
+  for(const c of theme.colors)h+=`<div class="theme-card"><div class="swatch-lg" style="background:${c.value}"></div><div class="val">${esc(c.value)}</div><div style="color:var(--ov0);font-size:8px;margin-top:2px">${esc(c.name)}</div></div>`;
+  h+=`</div></div>`;
+  // Fonts
+  if(theme.fonts.length>0){h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--blu)"></div>Font Stacks (${theme.fonts.length})</div><div class="db">`;
+    for(const f of theme.fonts)h+=`<div style="margin:2px 0"><span style="font-family:${f};color:var(--text)">${esc(f)}</span></div>`;h+=`</div></div>`}
+  // Spacing
+  if(theme.spacing.length>0){h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--grn)"></div>Spacing Scale</div><div class="db" style="display:flex;gap:6px;flex-wrap:wrap">`;
+    for(const s of theme.spacing)h+=`<span class="tag">${esc(s)}</span>`;h+=`</div></div>`}
+  // Radii
+  if(theme.radii.length>0){h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--ylw)"></div>Border Radii</div><div class="db" style="display:flex;gap:6px;flex-wrap:wrap">`;
+    for(const r of theme.radii)h+=`<span class="tag" style="border-radius:${r}">${esc(r)}</span>`;h+=`</div></div>`}
+  // Breakpoints
+  if(theme.breakpoints.length>0){h+=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--mav)"></div>Breakpoints</div><div class="db" style="display:flex;gap:6px;flex-wrap:wrap">`;
+    for(const b of theme.breakpoints)h+=`<span class="tag">${esc(b)}</span>`;h+=`</div></div>`}
+  panel.innerHTML=h;
+}
+
+function renderSelectors(){
+  const ctrl=document.getElementById('selCtrl');const types=[...new Set(D.selectors.map(s=>s.type))];
+  let ch=`<input class="sel-search" id="selSrch" placeholder="Filter selectors..." oninput="filterSels()">`;
+  ch+=`<button class="sf on" data-f="all" onclick="setSF('all')">All (${D.selectors.length})</button>`;
+  ch+=`<button class="sf" data-f="hi" onclick="setSF('hi')">High Score (70+)</button>`;
+  ch+=`<button class="sf" data-f="stable" onclick="setSF('stable')">Stable</button>`;
+  ch+=`<button class="sf" data-f="obfuscated" onclick="setSF('obfuscated')">Obfuscated</button>`;
+  for(const t of types)ch+=`<button class="sf" data-f="${t}" onclick="setSF('${t}')">${t}</button>`;
+  ctrl.innerHTML=ch;document.getElementById('selN').textContent=D.selectors.length;
+  filterSels();
+}
+let selFilter='all';
+function setSF(f){selFilter=f;document.querySelectorAll('.sf').forEach(b=>b.classList.toggle('on',b.dataset.f===f));filterSels()}
+function filterSels(){
+  const q=(document.getElementById('selSrch')?.value||'').toLowerCase();
+  let f=D.selectors;
+  if(selFilter==='stable')f=f.filter(s=>s.stability==='stable');
+  else if(selFilter==='obfuscated')f=f.filter(s=>s.stability==='obfuscated');
+  else if(selFilter==='hi')f=f.filter(s=>s.score>=70);
+  else if(selFilter!=='all')f=f.filter(s=>s.type===selFilter);
+  if(q)f=f.filter(s=>s.selector.toLowerCase().includes(q)||s.desc.toLowerCase().includes(q));
+  const list=document.getElementById('selList');let h='';
+  for(const s of f.slice(0,200)){
+    const sc=s.score>=70?'hi':s.score>=40?'md':'lo';
+    const stab=s.stability==='stable'?'<span class="tg-s">STABLE</span>':'<span class="tg-o">OBF</span>';
+    const typeTag=s.type==='semantic'?'<span class="tg-sem">SEMANTIC</span>':s.type==='data-attr'?'<span class="tg-da">DATA-ATTR</span>':s.type==='aria'?'<span class="tg-da">ARIA</span>':'';
+    h+=`<div class="si"><div class="ss"><code>${esc(s.selector)}</code><span class="score-inline ${sc}">${s.score}</span><button class="cp-mini" onclick="cp('${esc(s.selector.replace(/'/g,"\\'"))}')">Copy</button><button class="cp-mini" onclick="cp('${esc(s.xpath?.replace(/'/g,"\\'")||'')}')">XPath</button></div><div class="sm">${stab}${typeTag}<span>&lt;${s.element}&gt;</span><span>${s.matchCount}x</span></div>${s.xpath?`<div class="xpath" title="${esc(s.xpath)}">${esc(s.xpath)}</div>`:''}</div>`;
+  }
+  if(f.length>200)h+=`<div style="padding:8px;color:var(--ov0);font-size:10px">+${f.length-200} more</div>`;
+  if(f.length===0)h='<div style="padding:16px;color:var(--ov0);text-align:center">No selectors match</div>';
+  list.innerHTML=h;
+}
+
+function renderCodePanel(){
+  const cards=generateCode();const c=document.getElementById('codeCds');let h='';
+  for(const cd of cards)h+=`<div class="cc"><div class="ch"><span class="ct">${esc(cd.title)}</span><span class="cl">${esc(cd.lang)}</span><button class="abtn" onclick="cp(this.closest('.cc').querySelector('pre code').textContent)">Copy</button></div><pre><code>${esc(cd.code)}</code></pre></div>`;
+  c.innerHTML=h;
+}
+
+// ═══════════════════════════════════════
+// ELEMENT PICKER
+// ═══════════════════════════════════════
+function togglePicker(){
+  pickerOn=!pickerOn;
+  document.getElementById('pickerBtn').style.borderColor=pickerOn?'var(--tea)':'var(--s1)';
+  document.getElementById('pickerBtn').style.color=pickerOn?'var(--tea)':'var(--sub0)';
+  document.getElementById('prevOv').style.pointerEvents=pickerOn?'auto':'none';
+}
+
+document.getElementById('prevOv').addEventListener('mousemove',e=>{
+  if(!pickerOn)return;
+  const frame=document.getElementById('prevFrame');
+  const fDoc=frame.contentDocument;if(!fDoc)return;
+  const rect=frame.getBoundingClientRect();
+  const x=e.clientX-rect.left;const y=e.clientY-rect.top;
+  const el=fDoc.elementFromPoint(x,y);
+  if(!el||el===fDoc.body||el===fDoc.documentElement)return;
+  const eRect=el.getBoundingClientRect();
+  const hl=document.getElementById('prevHl');const lbl=document.getElementById('prevLbl');
+  hl.style.display='block';hl.style.left=(eRect.left+rect.left)+'px';hl.style.top=(eRect.top+rect.top)+'px';
+  hl.style.width=eRect.width+'px';hl.style.height=eRect.height+'px';
+  const tag=el.tagName.toLowerCase();const id=el.id?'#'+el.id:'';const cls=el.classList.length>0?'.'+[...el.classList].slice(0,2).join('.'):'';
+  lbl.style.display='block';lbl.style.left=(eRect.left+rect.left)+'px';lbl.style.top=Math.max(0,(eRect.top+rect.top-20))+'px';
+  lbl.textContent=tag+id+cls+' ('+Math.round(eRect.width)+'x'+Math.round(eRect.height)+')';
+});
+
+document.getElementById('prevOv').addEventListener('click',e=>{
+  if(!pickerOn)return;
+  const frame=document.getElementById('prevFrame');const fDoc=frame.contentDocument;if(!fDoc)return;
+  const rect=frame.getBoundingClientRect();
+  const el=fDoc.elementFromPoint(e.clientX-rect.left,e.clientY-rect.top);
+  if(!el)return;
+  // Map to D.doc element by path
+  // Build path from iframe element, find matching in D.doc
+  renderElementDetail(el,document.getElementById('prevDet'));
+});
+
+document.getElementById('prevOv').addEventListener('mouseleave',()=>{
+  document.getElementById('prevHl').style.display='none';
+  document.getElementById('prevLbl').style.display='none';
+});
+
+// ═══════════════════════════════════════
+// GLOBAL SEARCH
+// ═══════════════════════════════════════
+function globalSearchHandler(){
+  const q=document.getElementById('globalSearch').value.toLowerCase();
+  if(!q)return;
+  // Search selectors, CSS rules, parts
+  const results=[];
+  D.selectors.filter(s=>s.selector.toLowerCase().includes(q)||s.desc.toLowerCase().includes(q)).slice(0,5).forEach(s=>results.push({type:'Selector',text:s.selector,tab:'sel'}));
+  D.cssRules.filter(r=>r.selector.toLowerCase().includes(q)).slice(0,5).forEach(r=>results.push({type:'CSS Rule',text:r.selector,tab:'css'}));
+  D.cssVars.filter(v=>v.name.toLowerCase().includes(q)).slice(0,3).forEach(v=>results.push({type:'CSS Var',text:v.name+': '+v.value,tab:'css'}));
+  // Show in toast
+  if(results.length>0)toast(results.length+' results — switch to '+results[0].tab+' tab','ok');
+  // Auto-populate selector search if on sel tab
+  const selSrch=document.getElementById('selSrch');
+  if(selSrch){selSrch.value=q;filterSels()}
+}
+
+// ═══════════════════════════════════════
+// COMPARE
+// ═══════════════════════════════════════
+document.getElementById('cmpIn').addEventListener('change',e=>{
+  if(!e.target.files.length)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const parts2=parseMHTML(ev.target.result);
+    const htmlPart2=parts2.find(p=>p.contentType.includes('html'));
+    if(!htmlPart2){toast('No HTML in comparison file','');return}
+    const parser=new DOMParser();
+    const doc2=parser.parseFromString(htmlPart2.decoded,'text/html');
+    const sels2=analyzeSelectors(doc2);
+    const diff=compareDocs(D.selectors,sels2);
+    const res=document.getElementById('cmpRes');res.style.display='block';
+    document.getElementById('cmpDrop').style.display='none';
+    let h=`<div class="ds"><div class="dt"><div class="dot" style="background:var(--grn)"></div>Added Selectors (${diff.added.length})</div>`;
+    if(diff.added.length>0){for(const s of diff.added.slice(0,100))h+=`<span class="cmp-added">${esc(s)}</span>`}else h+='<div style="color:var(--ov0);font-size:10px">None</div>';
+    h+=`</div><div class="ds"><div class="dt"><div class="dot" style="background:var(--red)"></div>Removed Selectors (${diff.removed.length})</div>`;
+    if(diff.removed.length>0){for(const s of diff.removed.slice(0,100))h+=`<span class="cmp-removed">${esc(s)}</span>`}else h+='<div style="color:var(--ov0);font-size:10px">None</div>';
+    h+=`</div><div class="ds"><div class="dt"><div class="dot" style="background:var(--ov0)"></div>Unchanged (${diff.kept.length})</div><div style="color:var(--ov0);font-size:10px">${diff.kept.length} selectors survived — these are safe to target</div></div>`;
+    res.innerHTML=h;
+    toast('Compared '+D.selectors.length+' vs '+sels2.length+' selectors','ok');
+  };
+  reader.readAsText(e.target.files[0]);
+});
+
+// ═══════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tp').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');document.querySelector(`[data-p="${t.dataset.t}"]`).classList.add('active');
+}));
+
+// ═══════════════════════════════════════
+// EXPORTS
+// ═══════════════════════════════════════
+function cpAllVars(){cp(D.cssVars.map(v=>`${v.name}: ${v.value};`).join('\n'))}
+function cpRule(i){const r=D.cssRules[i];cp(`${r.selector} {\n${r.properties.map(p=>`  ${p.prop}: ${p.val};`).join('\n')}\n}`)}
+function exportCleanHTML(){if(D.htmlPart){dl(D.htmlPart,D.fileName.replace(/\.[^.]+$/,'')+'_clean.html');toast('Exported','ok')}}
+function exportAllCSS(){let t=':root {\n'+D.cssVars.map(v=>`  ${v.name}: ${v.value};`).join('\n')+'\n}\n\n';t+=D.cssRules.map(r=>`${r.selector} {\n${r.properties.map(p=>`  ${p.prop}: ${p.val};`).join('\n')}\n}`).join('\n\n');dl(t,D.fileName.replace(/\.[^.]+$/,'')+'_styles.css');toast('Exported','ok')}
+function exportUserscript(){dl(buildFullUserscript(),D.domain.replace(/\./g,'_')+'_customizer.user.js');toast('Exported .user.js','ok')}
+function exportSelectors(){const data=D.selectors.filter(s=>s.score>=50).map(s=>({selector:s.selector,type:s.type,score:s.score,xpath:s.xpath,matches:s.matchCount,element:s.element}));dl(JSON.stringify(data,null,2),D.fileName.replace(/\.[^.]+$/,'')+'_selectors.json');toast('Exported JSON','ok')}
+function dl(text,fn){const b=new Blob([text],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;a.click();URL.revokeObjectURL(a.href)}
+function resetApp(){document.getElementById('dzC').style.display='';document.getElementById('mnV').style.display='none';document.getElementById('fi').style.display='none';document.getElementById('acts').style.display='none';document.getElementById('gsearch').style.display='none';document.getElementById('subtitle').style.display=''}
+function toggleTextSearch(){toast('Type in global search to find elements by text')}
+
+// ═══════════════════════════════════════
+// FILE LOADING
+// ═══════════════════════════════════════
+function processFile(file){
+  D.fileName=file.name;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    D.parts=parseMHTML(e.target.result);
+    const hp=D.parts.find(p=>p.contentType.includes('html'));
+    if(hp){
+      D.htmlPart=hp.decoded;
+      D.doc=new DOMParser().parseFromString(hp.decoded,'text/html');
+      const{rules,vars}=extractCSS(D.doc,D.parts);
+      D.cssRules=rules;D.cssVars=vars;
+      D.selectors=analyzeSelectors(D.doc);
+      // Extract domain
+      for(const p of D.parts){if(p.location.startsWith('http')){try{D.domain=new URL(p.location).hostname}catch{};break}}
+      if(!D.domain)D.domain='example.com';
+    }
+    document.getElementById('dzC').style.display='none';
+    document.getElementById('mnV').style.display='flex';
+    document.getElementById('subtitle').style.display='none';
+    document.getElementById('acts').style.display='flex';
+    document.getElementById('gsearch').style.display='flex';
+    const fi=document.getElementById('fi');fi.style.display='flex';
+    const sz=file.size>1048576?(file.size/1048576).toFixed(1)+' MB':(file.size/1024).toFixed(1)+' KB';
+    fi.innerHTML=`<span class="tag">${esc(file.name)}</span><span class="tag">${sz}</span><span class="tag">${D.parts.length} parts</span><span class="tag">${D.cssRules.length} rules</span><span class="tag">${D.cssVars.length} vars</span><span class="fmt-badge">${D.selectors.length} selectors</span>`;
+    renderParts();renderPreview();renderDOMTree();renderCSSPanel();renderTheme();renderSelectors();renderCodePanel();
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+// Drag & drop
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files.length>0)processFile(e.dataTransfer.files[0])});
+document.getElementById('fIn').addEventListener('change',e=>{if(e.target.files.length>0)processFile(e.target.files[0])});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files.length>0)processFile(e.dataTransfer.files[0])});
+</script>
+</body>
+</html>
