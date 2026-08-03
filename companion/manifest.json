@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "MHTMLens Companion",
+  "description": "Capture the current page as MHTML and hand it to MHTMLens.",
+  "version": "0.3.0",
+  "permissions": [
+    "activeTab",
+    "contextMenus",
+    "downloads",
+    "offscreen",
+    "pageCapture",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Analyze page in MHTMLens",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

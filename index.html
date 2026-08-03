@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#1e1e2e">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MHTMLens v0.2.0</title>
+<title>MHTMLens v0.3.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Righteous&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#11111b;--base:#181825;--mantle:#1e1e2e;--crust:#13131d;--s0:#313244;--s1:#45475a;--s2:#585b70;--text:#cdd6f4;--sub1:#bac2de;--sub0:#a6adc8;--ov0:#6c7086;--grn:#a6e3a1;--grn-d:rgba(166,227,161,.12);--red:#f38ba8;--red-d:rgba(243,139,168,.12);--pch:#fab387;--pch-d:rgba(250,179,135,.12);--ylw:#f9e2af;--ylw-d:rgba(249,226,175,.12);--blu:#89b4fa;--blu-d:rgba(137,180,250,.12);--mav:#cba6f7;--mav-d:rgba(203,166,247,.12);--tea:#94e2d5;--tea-d:rgba(148,226,213,.12);--sky:#89dceb;--mono:'Fira Code',monospace;--sans:'Manrope',sans-serif;--disp:'Righteous',sans-serif}
@@ -160,7 +160,7 @@
 <body>
 <div id="app">
   <div class="hdr">
-    <h1>MHTMLens</h1><span class="ver">v0.2.0</span>
+    <h1>MHTMLens</h1><span class="ver">v0.3.0</span>
     <div class="fi" id="fi" style="display:none"></div>
     <div class="gsearch" id="gsearch" style="display:none">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -530,7 +530,7 @@ function buildFullUserscript(){
   return `// ==UserScript==
 // @name         ${domain} Customizer
 // @namespace    https://github.com/SysAdminDoc
-// @version      0.1.0
+// @version      0.3.0
 // @description  Userscript for ${domain}
 // @match        *://${domain}/*
 // @grant        GM_addStyle
@@ -988,22 +988,19 @@ function hasCapturedResource(target,parts=D.parts){
   return parts.some(p=>{const got=normalizedLocation(p.location);return got===wanted||got.endsWith('/'+wanted.split('/').pop())||wanted.endsWith('/'+got.split('/').pop())});
 }
 
+const OBFUSCATION_MODEL={name:'signature-logit-v1',weights:{length:.18,entropy:2.1,digits:1.4,mixedCase:1.25,separatorHash:1.6,cssInJs:1.8,module:1.7}};
 function obfuscationProfile(name){
-  const value=String(name||'');const signals=[];
+  const value=String(name||'');const signals=[];const entropy=value?new Set(value).size/value.length:0;const features={length:Math.min(1,value.length/16),entropy,digits:/\d/.test(value)?1:0,mixedCase:/[A-Z]/.test(value)&&/[a-z]/.test(value)?1:0,separatorHash:/[_-][a-zA-Z0-9]{5,}$/.test(value)?1:0,cssInJs:/^css-[a-z0-9]+$/i.test(value)?1:0,module:/^[A-Z][a-z]{2,5}[A-Z][a-z]+__[a-z]/.test(value)?1:0};
   if(/^[a-zA-Z]{1,3}[A-Z][a-zA-Z0-9]{3,}$/.test(value))signals.push('mixed-case hash');
   if(/^[a-z]{1,2}\d{2,}$/i.test(value))signals.push('numeric suffix');
-  if(/^css-[a-z0-9]+$/i.test(value))signals.push('CSS-in-JS hash');
+  if(features.cssInJs)signals.push('CSS-in-JS hash');
   if(/^_?[a-zA-Z0-9]{6,}$/.test(value)&&/[A-Fa-f0-9]{4}/.test(value))signals.push('hash-like token');
-  if(/[_-][a-zA-Z0-9]{5,}$/.test(value))signals.push('hashed suffix');
-  if(/^[A-Z][a-z]{2,5}[A-Z][a-z]+__[a-z]/.test(value))signals.push('CSS module signature');
-  const entropy=value?new Set(value).size/value.length:0;
-  if(value.length>7&&entropy>.7&&/[A-Z]/.test(value)&&/[a-z]/.test(value)&&/\d/.test(value))signals.push('high entropy');
-  const confidence=Math.min(1,signals.length*.23+(entropy>.7?.12:0));
-  let category='readable';
-  if(signals.some(s=>s.includes('CSS-in-JS')))category='CSS-in-JS';
-  else if(signals.some(s=>s.includes('module')))category='CSS module';
-  else if(signals.length)category='generated/hash';
-  return{obfuscated:signals.length>0,confidence,category,signals,entropy};
+  if(features.separatorHash)signals.push('hashed suffix');
+  if(features.module)signals.push('CSS module signature');
+  if(value.length>7&&entropy>.7&&features.mixedCase&&features.digits)signals.push('high entropy');
+  const linear=Object.entries(features).reduce((sum,[key,feature])=>sum+(OBFUSCATION_MODEL.weights[key]||0)*feature,-2.4);const probability=1/(1+Math.exp(-linear));const obfuscated=signals.length>0||probability>=.64;
+  let category='readable';if(features.cssInJs)category='CSS-in-JS';else if(features.module)category='CSS module';else if(obfuscated)category='generated/hash';
+  return{obfuscated,confidence:probability,category,signals,entropy,model:OBFUSCATION_MODEL.name,features};
 }
 const legacyIsObf=isObf;
 isObf=function(name){return obfuscationProfile(name).obfuscated||legacyIsObf(name)};
@@ -1270,6 +1267,7 @@ function capturePreviewThumbnail(){
 function buildDashboardHtml(payload){
   const data=JSON.stringify(payload).replace(/</g,'\\u003c');return`<!doctype html><meta charset="utf-8"><title>MHTMLens selector health</title><style>body{font:14px system-ui;background:#1e1e2e;color:#cdd6f4;padding:24px}article{background:#313244;padding:16px;border-radius:8px;margin:12px 0}code{color:#f5c2e7}th,td{text-align:left;padding:5px;border-bottom:1px solid #585b70}</style><h1>MHTMLens selector health</h1><div id="app"></div><script>const data=${data};const h=data.health||{};document.getElementById('app').innerHTML='<article><b>Score: '+(h.score??'n/a')+'/100</b><p>'+data.file+'</p></article><article><h2>Selectors</h2><table><tr><th>Selector</th><th>Score</th><th>Matches</th></tr>'+data.selectors.map(s=>'<tr><td><code>'+s.selector.replace(/</g,'&lt;')+'</code></td><td>'+s.score+'</td><td>'+s.matchCount+'</td></tr>').join('')+'</table></article>';${String.fromCharCode(60)}/script>`;
 }
+function captureDocumentThumbnail(doc,label){if(!doc)return'';const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const ctx=canvas.getContext('2d');ctx.fillStyle='#1e1e2e';ctx.fillRect(0,0,640,360);ctx.fillStyle='#cdd6f4';ctx.font='bold 16px sans-serif';ctx.fillText(label||'MHTML capture',20,28);ctx.font='12px monospace';ctx.fillStyle='#a6adc8';let y=55;const lines=[...doc.querySelectorAll('body *')].filter(el=>el.children.length===0&&el.textContent.trim()).slice(0,20).map(el=>'<'+el.tagName.toLowerCase()+'> '+el.textContent.trim().replace(/\s+/g,' ').slice(0,78));for(const line of lines){if(y>340)break;ctx.fillText(line,20,y);y+=14}return canvas.toDataURL('image/png')}
 function exportDashboard(){if(!D.doc)return;dl(buildDashboardHtml({file:D.fileName,health:D.health,selectors:D.selectors.slice(0,500),shadowRoots:D.shadowRoots,iframes:D.iframeInventory}),(D.fileName||'mhtmlens').replace(/\.[^.]+$/,'')+'_dashboard.html');toast('Exported dashboard','ok')}
 function exportReviewBundle(){if(!D.doc)return;const bundle={format:'mhtmlens-review',version:ENHANCEMENT_VERSION,file:D.fileName,domain:D.domain,notes:D.reviewNotes||'',selectors:D.selectors,shadowRoots:D.shadowRoots,iframes:D.iframeInventory,dynamicImports:D.dynamicImports,variableGraph:D.variableGraph,thumbnail:capturePreviewThumbnail(),html:D.htmlPart};dl(JSON.stringify(bundle,null,2),(D.fileName||'mhtmlens').replace(/\.[^.]+$/,'')+'_review.json');toast('Exported review bundle','ok')}
 function exportDesignTokens(format='figma'){
@@ -1292,6 +1290,47 @@ const legacyRenderCodePanel=renderCodePanel;renderCodePanel=function(){legacyRen
 const legacyRefreshGeneratedCode=refreshGeneratedCode;refreshGeneratedCode=function(){legacyRenderCodePanel();document.getElementById('codeCds')?.removeAttribute('data-base-code');renderCodePanelEnhanced();};
 const legacyProcessFile=processFile;processFile=function(file){legacyProcessFile(file);let attempts=0;const refreshDomain=()=>{if(D.doc&&D.fileName===file.name){D.iframeInventory=inventoryIframes(D.doc,D.parts,D.domain||'');D.health=computeHealth(D.selectors);renderInsights();renderLive();return}if(attempts++<40)setTimeout(refreshDomain,50)};setTimeout(refreshDomain,0);};
 addEnhancementUI();
+
+// ═══════════════════════════════════════
+// ARCHIVE INPUTS (MAFF / ZIP SINGLEFILE)
+// ═══════════════════════════════════════
+function zipU16(view,offset){return view.getUint16(offset,true)}
+function zipU32(view,offset){return view.getUint32(offset,true)}
+function bytesAsBinary(bytes){let text='';for(let i=0;i<bytes.length;i+=0x8000)text+=String.fromCharCode(...bytes.subarray(i,Math.min(i+0x8000,bytes.length)));return text}
+function archiveContentType(name){const ext=(name.match(/\.([^.]+)$/)||[])[1]?.toLowerCase();return({html:'text/html',htm:'text/html',css:'text/css',js:'application/javascript',mjs:'application/javascript',json:'application/json',svg:'image/svg+xml',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp'})[ext]||'application/octet-stream'}
+async function inflateZipEntry(bytes,method){if(method===0)return bytes;if(method!==8)throw new Error('Unsupported ZIP compression method '+method);if(typeof DecompressionStream==='undefined')throw new Error('This browser lacks the DecompressionStream API required for MAFF');const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));return new Uint8Array(await new Response(stream).arrayBuffer())}
+async function readZipEntries(buffer){
+  const bytes=new Uint8Array(buffer),view=new DataView(buffer);if(bytes.length<22)throw new Error('Not a ZIP archive');let eocd=-1;
+  for(let i=bytes.length-22;i>=Math.max(0,bytes.length-0xffff-22);i--){if(zipU32(view,i)===0x06054b50){eocd=i;break}}
+  if(eocd<0)throw new Error('Not a ZIP archive');
+  const count=zipU16(view,eocd+10),directoryOffset=zipU32(view,eocd+16);let cursor=directoryOffset;const entries=[];
+  for(let i=0;i<count&&cursor+46<=bytes.length;i++){
+    if(zipU32(view,cursor)!==0x02014b50)break;
+    const method=zipU16(view,cursor+10),compressed=zipU32(view,cursor+20),nameLength=zipU16(view,cursor+28),extraLength=zipU16(view,cursor+30),commentLength=zipU16(view,cursor+32),localOffset=zipU32(view,cursor+42);
+    const name=new TextDecoder().decode(bytes.subarray(cursor+46,cursor+46+nameLength));if(localOffset+30>bytes.length||zipU32(view,localOffset)!==0x04034b50)throw new Error('Invalid ZIP local entry '+name);
+    const localNameLength=zipU16(view,localOffset+26),localExtraLength=zipU16(view,localOffset+28),start=localOffset+30+localNameLength+localExtraLength;const raw=bytes.subarray(start,start+compressed);const data=await inflateZipEntry(raw,method);
+    entries.push({name,bytes:data,contentType:archiveContentType(name)});cursor+=46+nameLength+extraLength+commentLength;
+  }
+  if(!entries.length)throw new Error('ZIP archive has no readable entries');return entries;
+}
+function archivePart(entry){const text=entry.contentType.startsWith('text/')||entry.contentType.includes('javascript')||entry.contentType.includes('json')||entry.contentType.includes('svg');const decoded=text?new TextDecoder().decode(entry.bytes):bytesAsBinary(entry.bytes);return{location:entry.name,contentType:entry.contentType,encoding:'none',charset:'utf-8',body:decoded,decoded}}
+function finalizeArchiveCapture(file,entries){
+  const page=entries.find(e=>e.contentType==='text/html'&&!/index\.rdf$/i.test(e.name))||entries.find(e=>e.contentType==='text/html');if(!page)throw new Error('MAFF archive contains no HTML page');
+  D.fileName=file.name;D.parts=entries.map(archivePart);D.htmlPart=new TextDecoder().decode(page.bytes);D.doc=new DOMParser().parseFromString(D.htmlPart,'text/html');D.domain='';
+  for(const part of D.parts){if(/^https?:/i.test(part.location)){try{D.domain=new URL(part.location).hostname}catch{};break}}if(!D.domain)D.domain='example.com';
+  const extracted=extractCSS(D.doc,D.parts);D.cssRules=extracted.rules;D.cssVars=extracted.vars;D.selectors=analyzeSelectors(D.doc);
+  document.getElementById('dzC').style.display='none';document.getElementById('mnV').style.display='flex';document.getElementById('subtitle').style.display='none';document.getElementById('acts').style.display='flex';document.getElementById('gsearch').style.display='flex';
+  const fi=document.getElementById('fi');fi.style.display='flex';const size=file.size>1048576?(file.size/1048576).toFixed(1)+' MB':(file.size/1024).toFixed(1)+' KB';fi.innerHTML='<span class="tag">'+esc(file.name)+'</span><span class="tag">'+size+'</span><span class="tag">'+D.parts.length+' parts</span><span class="tag">'+D.cssRules.length+' rules</span><span class="tag">'+D.cssVars.length+' vars</span><span class="fmt-badge">'+D.selectors.length+' selectors</span>';
+  renderParts();renderPreview();renderDOMTree();renderCSSPanel();renderTheme();renderSelectors();renderCodePanel();renderInsights();renderPlayground();renderTimeline();renderLive();
+}
+async function processArchiveFile(file){try{const entries=await readZipEntries(await file.arrayBuffer());finalizeArchiveCapture(file,entries);toast('Loaded archive capture','ok')}catch(error){toast('Archive error: '+error.message);console.error(error)}}
+const processFileBeforeArchives=processFile;processFile=function(file){if(/\.(?:maff|zip)$/i.test(file.name)){processArchiveFile(file);return}processFileBeforeArchives(file)};
+document.getElementById('fIn')?.setAttribute('accept','.mhtml,.mht,.html,.htm,.maff,.zip');document.getElementById('cmpIn')?.setAttribute('accept','.mhtml,.mht,.html,.htm,.maff,.zip');document.getElementById('cmpIn')?.setAttribute('multiple','');
+const parseComparisonFileBeforeArchives=parseComparisonFile;parseComparisonFile=async function(file){if(!/\.(?:maff|zip)$/i.test(file.name))return parseComparisonFileBeforeArchives(file);const entries=await readZipEntries(await file.arrayBuffer());const page=entries.find(e=>e.contentType==='text/html');if(!page)return null;const html=new TextDecoder().decode(page.bytes);const doc=new DOMParser().parseFromString(html,'text/html');return{name:file.name,parts:entries.map(archivePart),html,doc,selectors:hydrateSelectorList(legacyAnalyzeSelectors(doc),doc)}};
+function loadSnapshotHash(){if(!location.hash.startsWith('#snapshot='))return;try{const encoded=decodeURIComponent(location.hash.slice(10));const binary=atob(encoded);const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));const html=new TextDecoder().decode(bytes);processFile(new File([html],'page-snapshot.html',{type:'text/html'}));history.replaceState(null,'',location.pathname+location.search)}catch(error){toast('Snapshot handoff failed: '+error.message)}}
+setTimeout(loadSnapshotHash,0);
+const buildUserscriptBeforeTrustedPolicy=buildFullUserscript;buildFullUserscript=function(){const generated=buildUserscriptBeforeTrustedPolicy();if(/youtube|google|facebook|instagram|meta/i.test(D.domain||''))return generated;return generated.replace(/\n  \/\/ Trusted types \(YouTube\/Google requirement\)[\s\S]*?\n\n  \/\/ Stable selectors/,'\n  // Trusted Types policy not required for this host.\n\n  // Stable selectors')};
+const runMultiCompareBeforeVisual=runMultiCompare;runMultiCompare=async function(){await runMultiCompareBeforeVisual();const versions=D.compareVersions||[];const target=document.getElementById('timelineResults');if(!target||versions.length<2)return;const first=versions[0],last=versions[versions.length-1];const firstWords=new Set((first.doc?.body?.textContent||'').trim().split(/\s+/).filter(Boolean));const lastWords=new Set((last.doc?.body?.textContent||'').trim().split(/\s+/).filter(Boolean));const added=[...lastWords].filter(word=>!firstWords.has(word)).slice(0,30);const removed=[...firstWords].filter(word=>!lastWords.has(word)).slice(0,30);target.insertAdjacentHTML('beforeend','<div class=\"enh-card\"><h3>Visual regression thumbnails</h3><div class=\"enh-grid\"><div><p>'+esc(first.name)+'</p><img alt=\"'+esc(first.name)+' thumbnail\" style=\"max-width:100%;border:1px solid var(--s0);border-radius:4px\" src=\"'+captureDocumentThumbnail(first.doc,first.name)+'\"></div><div><p>'+esc(last.name)+'</p><img alt=\"'+esc(last.name)+' thumbnail\" style=\"max-width:100%;border:1px solid var(--s0);border-radius:4px\" src=\"'+captureDocumentThumbnail(last.doc,last.name)+'\"></div></div><p class=\"enh-ok\">Added text tokens: '+esc(added.join(', ')||'none')+'</p><p class=\"enh-warn\">Removed text tokens: '+esc(removed.join(', ')||'none')+'</p></div>')};
 </script>
 </body>
 </html>

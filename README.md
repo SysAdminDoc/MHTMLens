@@ -1,6 +1,6 @@
 # MHTMLens
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue)
+![Version](https://img.shields.io/badge/version-0.3.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Any%20Browser-orange)
 ![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?logo=javascript&logoColor=black)
@@ -29,7 +29,7 @@ Nothing else does this. The closest alternatives are browser DevTools (no scorin
 ```bash
 git clone https://github.com/SysAdminDoc/MHTMLens.git
 cd MHTMLens
-# Open mhtmlens.html in your browser — that's it
+# Open index.html in your browser — that's it
 ```
 
 Or just download `mhtmlens.html` and double-click it. No server, no install, no dependencies.
@@ -59,6 +59,12 @@ Or just download `mhtmlens.html` and double-click it. No server, no install, no 
 | CSS Variables | Complete list of custom properties with color swatches and one-click copy |
 | Theme Extraction | Auto-detected color palette, font stacks, spacing scale, border radii, and breakpoint inventory |
 | Selector Comparison | Drop two MHTML saves — see which selectors were added, removed, or survived between versions |
+| Insights | Shadow roots, computed styles, runtime CSS-in-JS classes, iframe/module inventory, CSS variable graph, WCAG contrast, and a scriptability health score |
+| Playground | Test selectors in the sandbox, highlight matches, inspect fallback chains, and rank local selector repairs |
+| Timeline | Compare two or more captures, calculate selector survival, and render text/thumbnail regression evidence |
+| Archive Inputs | Read regular HTML, MHTML, MAFF, and ZIP-based SingleFile captures fully offline |
+| Companion | Chrome MV3 capture/download companion, auto-refresh handoff, and a userscript state snapshot |
+| CLI + Action | Dependency-free Node scoring CLI, static dashboard export, and GitHub Actions artifact gate |
 | Code Generation | Complete `.user.js` template, selector maps, CSS overrides, DOM cleanup, settings panel |
 | Export .user.js | One-click export of a working userscript with anti-FOUC, trustedTypes, selectors, and MutationObserver |
 | Export Selectors JSON | High-scoring selectors as structured JSON for testing frameworks |
@@ -217,6 +223,9 @@ Classes are flagged as obfuscated when they match any of:
 | All CSS | `.css` | Combined CSS variables + all rules from all sources |
 | Export .user.js | `.user.js` | Complete installable userscript with domain match, anti-FOUC, trustedTypes, selector map, styles, observer |
 | Selectors JSON | `.json` | All selectors scoring 50+ as structured data: selector, type, score, xpath, matches, element |
+| Design tokens | `.json` | Figma Tokens or Style Dictionary color/spacing output |
+| Review bundle | `.json` | Selector evidence, notes, archive inventory, HTML, and a local preview thumbnail |
+| Health dashboard | `.html` | Standalone selector-health report for review or CI artifacts |
 
 ## What It Does and Doesn't Do
 
@@ -236,9 +245,9 @@ Classes are flagged as obfuscated when they match any of:
 **Doesn't:**
 - Upload any data anywhere — fully offline after page load
 - Execute JavaScript from the MHTML (preview is sandboxed)
-- Handle Shadow DOM inspection (planned)
+- Handle Shadow DOM inspection, including declarative roots and composed selector snippets
 - Parse binary formats like `.evtx` or Chromium `.snss` sessions
-- Detect CSS-in-JS runtime styles (only static CSS from the MHTML)
+- Detect CSS-in-JS runtime styles by harvesting computed values from hashed classes in the disabled-script preview
 - Replace browser DevTools for live debugging — this is for static analysis of saved pages
 
 ## Prerequisites
@@ -280,19 +289,27 @@ A: Comparison is string-based — it compares the exact CSS selector strings gen
 A: Common issues: the `@match` pattern may need adjustment (check the domain in the userscript header matches the actual site URL), the page may load content dynamically after the initial DOM (the MutationObserver in the template handles this), or the selectors may have changed since you saved the MHTML. Re-save and re-analyze if the site updated.
 
 **Q: Can I compare more than two files?**
-A: Currently supports two-file comparison (A vs B). For tracking changes over multiple versions, export the selectors JSON from each version and diff them externally.
+A: Yes. Use the Timeline tab to compare two or more captures and see per-version selector survival rates. The original Compare tab remains useful for a quick A/B diff.
+
+**Q: Can I process a MAFF or SingleFile archive?**
+A: Drop a `.maff` or ZIP-based SingleFile capture into the app. The browser-native ZIP reader extracts text and binary resources without a server. Regular SingleFile HTML can be loaded directly.
+
+## CLI, GitHub Action, and companion
+
+The dependency-free CLI scores a capture and can emit selectors JSON plus a standalone dashboard:
+
+```bash
+node cli/mhtmlens.mjs score capture.mhtml --out selectors.json --dashboard report.html
+```
+
+The optional `companion/` directory is an unpacked Chrome MV3 extension. Load it from `chrome://extensions`, then use the action or page context menu to capture the active tab. `companion/mhtmlens-companion.user.js` provides the equivalent current-page snapshot handoff for userscript managers. The workflow in `.github/workflows/selector-health.yml` scores captures stored under `captures/`.
 
 ## Contributing
 
 Issues and PRs welcome. Areas that could use help:
 
-- Shadow DOM detection and inspection
-- CSS-in-JS runtime style extraction
-- Computed style viewer (post-cascade resolution)
-- CSS variable dependency graph
-- Multi-file comparison (3+ versions)
-- Iframe inventory and cross-origin detection
-- Custom format builder for non-standard MHTML variants
+- Additional parser coverage for non-standard archive variants
+- More visual diff adapters for sites with canvas-heavy rendering
 
 ## License
 

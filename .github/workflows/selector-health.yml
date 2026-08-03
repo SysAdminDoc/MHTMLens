@@ -1,0 +1,44 @@
+name: MHTMLens selector health
+
+on:
+  push:
+    paths:
+      - 'cli/**'
+      - 'captures/**'
+      - 'tests/**'
+      - '.github/workflows/selector-health.yml'
+  pull_request:
+    paths:
+      - 'cli/**'
+      - 'captures/**'
+      - 'tests/**'
+      - '.github/workflows/selector-health.yml'
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Score captured pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          captures="$(find captures -type f \( -iname '*.mhtml' -o -iname '*.mht' -o -iname '*.html' \) 2>/dev/null | sort || true)"
+          if [ -z "$captures" ]; then
+            echo "No captures/ fixtures found; selector-health gate is idle."
+            exit 0
+          fi
+          while IFS= read -r capture; do
+            stem="$(basename "$capture" | sed 's/[^A-Za-z0-9._-]/_/g')"
+            node cli/mhtmlens.mjs score "$capture" --out "reports/$stem.json" --dashboard "reports/$stem.html"
+          done <<< "$captures"
+      - name: Upload selector reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mhtmlens-selector-reports
+          path: reports/

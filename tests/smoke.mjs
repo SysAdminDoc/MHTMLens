@@ -14,8 +14,11 @@ assert.equal(openScripts, 2, 'the app and generated dashboard template should ha
 assert.equal(closeScripts, 1, 'generated dashboard closing tag must be escaped in the app source');
 const source = html.slice(html.indexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'));
 new vm.Script(source, { filename: 'index-inline.js' });
-for (const marker of ['collectShadowRoots', 'dependencyGraph', 'runMultiCompare', 'frameworkTemplates', 'exportReviewBundle']) {
+for (const marker of ['collectShadowRoots', 'dependencyGraph', 'runMultiCompare', 'frameworkTemplates', 'exportReviewBundle', 'readZipEntries', 'loadSnapshotHash']) {
   assert.ok(source.includes(marker), 'missing enhancement marker: ' + marker);
+}
+for (const companionFile of ['manifest.json', 'background.js', 'content.js', 'offscreen.js', 'popup.js', 'mhtmlens-companion.user.js']) {
+  assert.ok(fs.existsSync(path.join(root, 'companion', companionFile)), 'missing companion file: ' + companionFile);
 }
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mhtmlens-smoke-'));
