@@ -15,3 +15,16 @@ All notable changes to MHTMLens will be documented in this file.
 - Added: Add files via upload
 - Changed: Update README.md
 - Added: Add files via upload
+
+## Roadmap archive — 2026-08-10 — ROADMAP.md
+
+<details>
+<summary>Original roadmap snapshot</summary>
+
+```markdown
+# MHTMLens Roadmap
+
+MHTML forensics toolkit for userscript / extension authors — parse MHTML, score selector stability, diff page versions, export ready-to-install `.user.js`. v0.3.0, single HTML file. Roadmap targets deeper DOM coverage, live browser integration, and a proper selector-health pipeline.
+```
+
+</details>
